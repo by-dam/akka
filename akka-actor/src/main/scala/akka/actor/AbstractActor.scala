@@ -4,6 +4,9 @@
 
 package akka.actor
 
+import akka.japi.pf.ReceiveBuilder
+import akka.japi.pf.UnitPFBuilder
+
 /**
  * Java API: compatible with lambda expressions
  *
@@ -46,19 +49,6 @@ object AbstractActor {
  */
 abstract class AbstractActor extends Actor {
 
-  private var _receive: Receive = null
-
-  /**
-   * Set up the initial receive behavior of the Actor.
-   *
-   * @param receive  The receive behavior.
-   */
-  @throws(classOf[IllegalActorStateException])
-  protected def receive(receive: Receive): Unit =
-    if (_receive == null) _receive = receive
-    else throw IllegalActorStateException("Actor behavior has already been set with receive(...), " +
-      "use context().become(...) to change it later")
-
   /**
    * Returns this AbstractActor's AbstractActorContext
    * The AbstractActorContext is not thread safe so do not expose it outside of the
@@ -66,9 +56,84 @@ abstract class AbstractActor extends Actor {
    */
   def getContext(): AbstractActorContext = context.asInstanceOf[AbstractActorContext]
 
-  override def receive =
-    if (_receive != null) _receive
-    else throw IllegalActorStateException("Actor behavior has not been set with receive(...)")
+  /**
+   * Returns the ActorRef for this actor.
+   */
+  def getSelf(): ActorRef = self
+
+  /**
+   * The reference sender Actor of the currently processed message. This is
+   * always a legal destination to send to, even if there is no logical recipient
+   * for the reply, in which case it will be sent to the dead letter mailbox.
+   */
+  def getSender(): ActorRef = sender()
+
+  /**
+   * User overridable definition the strategy to use for supervising
+   * child actors.
+   */
+  override def supervisorStrategy: SupervisorStrategy = super.supervisorStrategy
+
+  /**
+   * User overridable callback.
+   * <p/>
+   * Is called when an Actor is started.
+   * Actor are automatically started asynchronously when created.
+   * Empty default implementation.
+   */
+  @throws(classOf[Exception])
+  override def preStart(): Unit = super.preStart()
+
+  /**
+   * User overridable callback.
+   * <p/>
+   * Is called asynchronously after 'actor.stop()' is invoked.
+   * Empty default implementation.
+   */
+  @throws(classOf[Exception])
+  override def postStop(): Unit = super.postStop()
+
+  /**
+   * User overridable callback: '''By default it disposes of all children and then calls `postStop()`.'''
+   * <p/>
+   * Is called on a crashed Actor right BEFORE it is restarted to allow clean
+   * up of resources before Actor is terminated.
+   */
+  @throws(classOf[Exception])
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = super.preRestart(reason, message)
+
+  /**
+   * User overridable callback: By default it calls `preStart()`.
+   * <p/>
+   * Is called right AFTER restart on the newly created Actor to allow reinitialization after an Actor crash.
+   */
+  @throws(classOf[Exception])
+  override def postRestart(reason: Throwable): Unit = super.postRestart(reason)
+
+  override def receive: PartialFunction[Any, Unit]
+
+  final def receiveBuilder(): UnitPFBuilder[Object] = ReceiveBuilder.create()
+}
+
+abstract class UntypedAbstractActor extends AbstractActor {
+
+  override def receive: PartialFunction[Any, Unit] = { case msg ⇒ onReceive(msg) }
+
+  /**
+   * To be implemented by concrete UntypedAbstractActor, this defines the behavior of the
+   * UntypedActor.
+   */
+  @throws(classOf[Throwable])
+  def onReceive(message: Any): Unit
+
+  /**
+   * Recommended convention is to call this method if the message
+   * isn't handled in [[#onReceive]] (e.g. unknown message type).
+   * By default it fails with either a [[akka.actor.DeathPactException]] (in
+   * case of an unhandled [[akka.actor.Terminated]] message) or publishes an [[akka.actor.UnhandledMessage]]
+   * to the actor's system's [[akka.event.EventStream]].
+   */
+  override def unhandled(message: Any): Unit = super.unhandled(message)
 }
 
 /**

@@ -18,6 +18,8 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 import org.scalatest.junit.JUnitSuite;
+import scala.PartialFunction;
+import scala.runtime.BoxedUnit;
 
 public class ActorCreationTest extends JUnitSuite {
 
@@ -94,6 +96,12 @@ public class ActorCreationTest extends JUnitSuite {
     TestActor(Integer magicNumber) {
       this.magicNumber = magicNumber;
     }
+
+    @Override
+    public PartialFunction<Object, BoxedUnit> receive() {
+      return receiveBuilder().build();
+    }
+
   }
 
   public static class UntypedTestActor extends UntypedActor {
@@ -218,9 +226,9 @@ public class ActorCreationTest extends JUnitSuite {
 
   @Test
   public void testRightTopLevelNonStaticCreator() {
-    final Creator<UntypedActor> nonStatic = new NonStaticCreator();
+    final Creator<UntypedAbstractActor> nonStatic = new NonStaticCreator();
     final Props p = Props.create(nonStatic);
-    assertEquals(UntypedActor.class, p.actorClass());
+    assertEquals(UntypedAbstractActor.class, p.actorClass());
   }
 
   @Test

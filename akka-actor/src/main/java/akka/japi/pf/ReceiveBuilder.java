@@ -4,6 +4,9 @@
 
 package akka.japi.pf;
 
+import scala.PartialFunction;
+import scala.runtime.BoxedUnit;
+
 /**
  * Used for building a partial function for {@link akka.actor.Actor#receive() Actor.receive()}.
  *
@@ -104,6 +107,10 @@ public class ReceiveBuilder {
    */
   public static UnitPFBuilder<Object> matchAny(FI.UnitApply<Object> apply) {
     return UnitMatch.matchAny(apply);
+  }
+
+  public static PartialFunction<Object, BoxedUnit> onMessage(FI.UnitApply<Object> apply) {
+    return matchAny(apply).build();
   }
 
 }

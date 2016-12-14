@@ -35,82 +35,147 @@ import scala.runtime.BoxedUnit;
  *
  * This is an EXPERIMENTAL feature and is subject to change until it has received more real world testing.
  */
-public class ReceiveBuilder {
+public class ReceiveBuilder extends AbstractPFBuilder<Object, BoxedUnit> {
+
   private ReceiveBuilder() {
   }
 
   /**
-   * Return a new {@link UnitPFBuilder} with no case statements. They can be added later as the returned {@link
-   * UnitPFBuilder} is a mutable object.
+   * Return a new {@link ReceiveBuilder} with no case statements. They can be
+   * added later as the returned {@link ReceiveBuilder} is a mutable object.
    *
    * @return a builder with no case statements
    */
-  public static UnitPFBuilder<Object> create() {
-    return new UnitPFBuilder<>();
+  public static ReceiveBuilder create() {
+    return new ReceiveBuilder();
+  }
+
+  // FIXME
+  //  public static PartialFunction<Object, BoxedUnit> onMessage(FI.UnitApply<Object> apply) {
+  //    return matchAny(apply).build();
+  //  }
+
+  /**
+   * Add a new case statement to this builder.
+   *
+   * @param type
+   *          a type to match the argument against
+   * @param apply
+   *          an action to apply to the argument if the type matches
+   * @return a builder with the case statement added
+   */
+  @SuppressWarnings("unchecked")
+  public <P> ReceiveBuilder match(final Class<? extends P> type, final FI.UnitApply<? extends P> apply) {
+
+    FI.Predicate predicate = new FI.Predicate() {
+      @Override
+      public boolean defined(Object o) {
+        return type.isInstance(o);
+      }
+    };
+
+    addStatement(new UnitCaseStatement<Object, P>(predicate, (FI.UnitApply<P>) apply));
+
+    return this;
   }
 
   /**
-   * Return a new {@link UnitPFBuilder} with a case statement added.
+   * Add a new case statement to this builder.
    *
-   * @param type  a type to match the argument against
-   * @param apply an action to apply to the argument if the type matches
+   * @param type
+   *          a type to match the argument against
+   * @param predicate
+   *          a predicate that will be evaluated on the argument if the type
+   *          matches
+   * @param apply
+   *          an action to apply to the argument if the type matches and the
+   *          predicate returns true
    * @return a builder with the case statement added
    */
-  public static <P> UnitPFBuilder<Object> match(final Class<? extends P> type, FI.UnitApply<? extends P> apply) {
-    return UnitMatch.match(type, apply);
+  @SuppressWarnings("unchecked")
+  public <P> ReceiveBuilder match(final Class<? extends P> type, final FI.TypedPredicate<? extends P> predicate,
+      final FI.UnitApply<? extends P> apply) {
+    FI.Predicate fiPredicate = new FI.Predicate() {
+      @Override
+      public boolean defined(Object o) {
+        if (!type.isInstance(o))
+          return false;
+        else {
+          @SuppressWarnings("unchecked")
+          P p = (P) o;
+          return ((FI.TypedPredicate<P>) predicate).defined(p);
+        }
+      }
+    };
+
+    addStatement(new UnitCaseStatement<Object, P>(fiPredicate, (FI.UnitApply<P>) apply));
+
+    return this;
   }
 
   /**
-   * Return a new {@link UnitPFBuilder} with a case statement added.
+   * Add a new case statement to this builder.
    *
-   * @param type      a type to match the argument against
-   * @param predicate a predicate that will be evaluated on the argument if the type matches
-   * @param apply     an action to apply to the argument if the type matches and the predicate returns true
+   * @param object
+   *          the object to compare equals with
+   * @param apply
+   *          an action to apply to the argument if the object compares equal
    * @return a builder with the case statement added
    */
-  public static <P> UnitPFBuilder<Object> match(final Class<? extends P> type,
-                                                FI.TypedPredicate<? extends P> predicate,
-                                                FI.UnitApply<? extends P> apply) {
-    return UnitMatch.match(type, predicate, apply);
+  public <P> ReceiveBuilder matchEquals(final P object, final FI.UnitApply<P> apply) {
+    addStatement(new UnitCaseStatement<Object, P>(new FI.Predicate() {
+      @Override
+      public boolean defined(Object o) {
+        return object.equals(o);
+      }
+    }, apply));
+    return this;
   }
 
   /**
-   * Return a new {@link UnitPFBuilder} with a case statement added.
+   * Add a new case statement to this builder.
    *
-   * @param object the object to compare equals with
-   * @param apply  an action to apply to the argument if the object compares equal
+   * @param object
+   *          the object to compare equals with
+   * @param predicate
+   *          a predicate that will be evaluated on the argument if the object
+   *          compares equal
+   * @param apply
+   *          an action to apply to the argument if the object compares equal
    * @return a builder with the case statement added
    */
-  public static <P> UnitPFBuilder<Object> matchEquals(P object, FI.UnitApply<P> apply) {
-    return UnitMatch.matchEquals(object, apply);
+  public <P> ReceiveBuilder matchEquals(final P object, final FI.TypedPredicate<P> predicate,
+      final FI.UnitApply<P> apply) {
+    addStatement(new UnitCaseStatement<Object, P>(new FI.Predicate() {
+      @Override
+      public boolean defined(Object o) {
+        if (!object.equals(o))
+          return false;
+        else {
+          @SuppressWarnings("unchecked")
+          P p = (P) o;
+          return predicate.defined(p);
+        }
+      }
+    }, apply));
+    return this;
   }
 
   /**
-   * Return a new {@link UnitPFBuilder} with a case statement added.
+   * Add a new case statement to this builder, that matches any argument.
    *
-   * @param object    the object to compare equals with
-   * @param predicate a predicate that will be evaluated on the argument if the object compares equal
-   * @param apply     an action to apply to the argument if the object compares equal
+   * @param apply
+   *          an action to apply to the argument
    * @return a builder with the case statement added
    */
-  public static <P> UnitPFBuilder<Object> matchEquals(P object,
-                                                      FI.TypedPredicate<P> predicate,
-                                                      FI.UnitApply<P> apply) {
-    return UnitMatch.matchEquals(object, predicate, apply);
-  }
-
-  /**
-   * Return a new {@link UnitPFBuilder} with a case statement added.
-   *
-   * @param apply an action to apply to the argument
-   * @return a builder with the case statement added
-   */
-  public static UnitPFBuilder<Object> matchAny(FI.UnitApply<Object> apply) {
-    return UnitMatch.matchAny(apply);
-  }
-
-  public static PartialFunction<Object, BoxedUnit> onMessage(FI.UnitApply<Object> apply) {
-    return matchAny(apply).build();
+  public ReceiveBuilder matchAny(final FI.UnitApply<Object> apply) {
+    addStatement(new UnitCaseStatement<Object, Object>(new FI.Predicate() {
+      @Override
+      public boolean defined(Object o) {
+        return true;
+      }
+    }, apply));
+    return this;
   }
 
 }

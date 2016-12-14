@@ -6,8 +6,6 @@ package akka.cluster.sharding;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import scala.PartialFunction;
-import scala.runtime.BoxedUnit;
 import scala.concurrent.duration.Duration;
 
 import akka.actor.AbstractActor;
@@ -191,7 +189,7 @@ public class ClusterShardingTest {
   public class IllustrateGracefulShutdown extends AbstractActor {
 
     @Override
-    public PartialFunction<Object, BoxedUnit> receive() {
+    public ReceiveBuilder initialReceive() {
       final ActorSystem system = context().system();
       final Cluster cluster = Cluster.get(system);
       final ActorRef region = ClusterSharding.get(system).shardRegion("Entity");
@@ -213,8 +211,7 @@ public class ClusterShardingTest {
         })
         .match(String.class, s -> s.equals("stop-system"), s -> {
           system.terminate();
-        })
-        .build();
+        });
     }
   }
   //#graceful-shutdown

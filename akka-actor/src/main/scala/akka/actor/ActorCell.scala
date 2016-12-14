@@ -18,6 +18,7 @@ import java.util.concurrent.ThreadLocalRandom
 import scala.util.control.NonFatal
 import akka.dispatch.MessageDispatcher
 import akka.util.Reflect
+import akka.japi.pf.ReceiveBuilder
 
 /**
  * The actor context - the view of the actor cell from the actor.
@@ -177,6 +178,27 @@ trait AbstractActorContext extends ActorContext {
    * that name exists.
    */
   def getChild(name: String): ActorRef
+
+  /**
+   * Changes the Actor's behavior to become the new 'Receive' handler.
+   * Replaces the current behavior on the top of the behavior stack.
+   */
+  def become(builder: ReceiveBuilder): Unit =
+    become(builder, discardOld = true)
+
+  /**
+   * Changes the Actor's behavior to become the new 'Receive' handler.
+   * This method acts upon the behavior stack as follows:
+   *
+   *  - if `discardOld = true` it will replace the top element (i.e. the current behavior)
+   *  - if `discardOld = false` it will keep the current behavior and push the given one atop
+   *
+   * The default of replacing the current behavior on the stack has been chosen to avoid memory
+   * leaks in case client code is written without consulting this documentation first (i.e.
+   * always pushing new behaviors and never issuing an `unbecome()`)
+   */
+  def become(builder: ReceiveBuilder, discardOld: Boolean): Unit =
+    become(builder.build().asInstanceOf[PartialFunction[Any, Unit]], discardOld)
 }
 
 /**

@@ -7,30 +7,28 @@ package docs.actor;
 //#sample-actor
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
-import scala.PartialFunction;
-import scala.runtime.BoxedUnit;
 
 public class SampleActor extends AbstractActor {
 
-  private PartialFunction<Object, BoxedUnit> guarded = ReceiveBuilder.
-    match(String.class, s -> s.contains("guard"), s -> {
+  private ReceiveBuilder guarded = receiveBuilder()
+    .match(String.class, s -> s.contains("guard"), s -> {
       sender().tell("contains(guard): " + s, self());
-      context().unbecome();
-    }).build();
+      getContext().unbecome();
+    });
 
-  public SampleActor() {
-    receive(ReceiveBuilder.
-      match(Double.class, d -> {
+  @Override
+  public ReceiveBuilder initialReceive() {
+    return receiveBuilder()
+      .match(Double.class, d -> {
         sender().tell(d.isNaN() ? 0 : d, self());
-      }).
-      match(Integer.class, i -> {
+      })
+      .match(Integer.class, i -> {
         sender().tell(i * 10, self());
-      }).
-      match(String.class, s -> s.startsWith("guard"), s -> {
+      })
+      .match(String.class, s -> s.startsWith("guard"), s -> {
         sender().tell("startsWith(guard): " + s.toUpperCase(), self());
-        context().become(guarded, false);
-      }).build()
-    );
+        getContext().become(guarded, false);
+      });
   }
 }
 //#sample-actor

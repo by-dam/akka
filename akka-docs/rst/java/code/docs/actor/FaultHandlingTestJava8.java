@@ -15,7 +15,6 @@ import akka.japi.pf.ReceiveBuilder;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.scalatest.junit.JUnitSuite;
-import scala.PartialFunction;
 import scala.concurrent.Await;
 import static akka.pattern.Patterns.ask;
 import scala.concurrent.duration.Duration;
@@ -33,7 +32,6 @@ import scala.Option;
 import org.junit.Test;
 import org.junit.BeforeClass;
 import org.junit.AfterClass;
-import scala.runtime.BoxedUnit;
 
 //#testkit
 public class FaultHandlingTestJava8 extends JUnitSuite {
@@ -65,12 +63,12 @@ public class FaultHandlingTestJava8 extends JUnitSuite {
 
     //#strategy
 
-    public Supervisor() {
-      receive(ReceiveBuilder.
+    @Override
+    public ReceiveBuilder initialReceive() {
+      return receiveBuilder().
         match(Props.class, props -> {
-          sender().tell(context().actorOf(props), self());
-        }).build()
-      );
+          sender().tell(getContext().actorOf(props), self());
+        });
     }
   }
 
@@ -95,12 +93,12 @@ public class FaultHandlingTestJava8 extends JUnitSuite {
 
     //#strategy2
 
-    public Supervisor2() {
-      receive(ReceiveBuilder.
+    @Override
+    public ReceiveBuilder initialReceive() {
+      return receiveBuilder().
         match(Props.class, props -> {
-          sender().tell(context().actorOf(props), self());
-        }).build()
-      );
+          sender().tell(getContext().actorOf(props), self());
+        });
     }
 
     @Override
@@ -116,12 +114,12 @@ public class FaultHandlingTestJava8 extends JUnitSuite {
   public class Child extends AbstractActor {
     int state = 0;
 
-    public Child() {
-      receive(ReceiveBuilder.
-        match(Exception.class, exception -> { throw exception; }).
-        match(Integer.class, i -> state = i).
-        matchEquals("get", s -> sender().tell(state, self())).build()
-      );
+    @Override
+    public ReceiveBuilder initialReceive() {
+      return receiveBuilder()
+        .match(Exception.class, exception -> { throw exception; })
+        .match(Integer.class, i -> state = i)
+        .matchEquals("get", s -> sender().tell(state, self()));
     }
   }
 

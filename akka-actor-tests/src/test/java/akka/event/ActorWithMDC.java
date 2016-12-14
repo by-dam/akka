@@ -1,20 +1,19 @@
 package akka.event;
 
 import akka.actor.AbstractActor;
+import akka.japi.pf.ReceiveBuilder;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import scala.PartialFunction;
-import scala.runtime.BoxedUnit;
 
 public class ActorWithMDC extends AbstractActor {
 
     private final DiagnosticLoggingAdapter logger = Logging.getLogger(this);
 
   @Override
-  public PartialFunction<Object, BoxedUnit> receive() {
-    return receiveBuilder().match(Log.class, this::receiveLog).build();
+  public ReceiveBuilder initialReceive() {
+    return receiveBuilder().match(Log.class, this::receiveLog);
   }
 
   private void receiveLog(Log log) {

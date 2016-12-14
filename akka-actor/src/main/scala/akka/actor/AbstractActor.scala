@@ -6,6 +6,7 @@ package akka.actor
 
 import akka.japi.pf.ReceiveBuilder
 import akka.japi.pf.UnitPFBuilder
+import scala.runtime.BoxedUnit
 
 /**
  * Java API: compatible with lambda expressions
@@ -110,12 +111,18 @@ abstract class AbstractActor extends Actor {
   @throws(classOf[Exception])
   override def postRestart(reason: Throwable): Unit = super.postRestart(reason)
 
-  override def receive: PartialFunction[Any, Unit]
+  def initialReceive(): ReceiveBuilder
 
-  final def receiveBuilder(): UnitPFBuilder[Object] = ReceiveBuilder.create()
+  override def receive: PartialFunction[Any, Unit] =
+    initialReceive().build().asInstanceOf[PartialFunction[Any, Unit]] // cast Object to Any
+
+  final def receiveBuilder(): ReceiveBuilder = ReceiveBuilder.create()
 }
 
 abstract class UntypedAbstractActor extends AbstractActor {
+
+  final override def initialReceive(): ReceiveBuilder =
+    throw new UnsupportedOperationException("initialReceive should not be used by UntypedAbstractActor")
 
   override def receive: PartialFunction[Any, Unit] = { case msg ⇒ onReceive(msg) }
 

@@ -18,8 +18,6 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 import org.scalatest.junit.JUnitSuite;
-import scala.PartialFunction;
-import scala.runtime.BoxedUnit;
 
 public class ActorCreationTest extends JUnitSuite {
 
@@ -98,8 +96,8 @@ public class ActorCreationTest extends JUnitSuite {
     }
 
     @Override
-    public PartialFunction<Object, BoxedUnit> receive() {
-      return receiveBuilder().build();
+    public ReceiveBuilder initialReceive() {
+      return receiveBuilder();
     }
 
   }

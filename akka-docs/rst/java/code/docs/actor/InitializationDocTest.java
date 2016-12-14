@@ -11,9 +11,7 @@ import docs.AbstractJavaTest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import scala.PartialFunction;
 import scala.concurrent.duration.Duration;
-import scala.runtime.BoxedUnit;
 import scala.concurrent.Await;
 
 import java.util.concurrent.TimeUnit;
@@ -35,19 +33,19 @@ public class InitializationDocTest extends AbstractJavaTest {
   public static class MessageInitExample extends AbstractActor {
     private String initializeMe = null;
 
-    public MessageInitExample() {
-      //#messageInit
-      receive(ReceiveBuilder.
-        matchEquals("init", m1 -> {
+    //#messageInit
+    @Override
+    public ReceiveBuilder initialReceive() {
+      return receiveBuilder()  
+        .matchEquals("init", m1 -> {
           initializeMe = "Up and running";
-          context().become(ReceiveBuilder.
+          getContext().become(receiveBuilder().
             matchEquals("U OK?", m2 -> {
               sender().tell(initializeMe, self());
-            }).build());
-        }).build()
-      //#messageInit
-      );
+            }));
+        });
     }
+    //#messageInit
   }
 
   @Test

@@ -35,15 +35,15 @@ public class InitializationDocTest extends AbstractJavaTest {
 
     //#messageInit
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()  
         .matchEquals("init", m1 -> {
           initializeMe = "Up and running";
           getContext().become(receiveBuilder().
             matchEquals("U OK?", m2 -> {
               sender().tell(initializeMe, self());
-            }));
-        });
+            })).build();
+        }).build();
     }
     //#messageInit
   }

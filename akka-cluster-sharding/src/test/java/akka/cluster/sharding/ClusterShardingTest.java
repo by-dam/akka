@@ -189,7 +189,7 @@ public class ClusterShardingTest {
   public class IllustrateGracefulShutdown extends AbstractActor {
 
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       final ActorSystem system = context().system();
       final Cluster cluster = Cluster.get(system);
       final ActorRef region = ClusterSharding.get(system).shardRegion("Entity");
@@ -211,7 +211,8 @@ public class ClusterShardingTest {
         })
         .match(String.class, s -> s.equals("stop-system"), s -> {
           system.terminate();
-        });
+        })
+        .build();
     }
   }
   //#graceful-shutdown

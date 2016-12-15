@@ -17,7 +17,7 @@ public class MyJavaActor extends AbstractActor {
   private final LoggingAdapter log = Logging.getLogger(context().system(), this);
 
   @Override
-  public ReceiveBuilder initialReceive() {
+  public Receive initialReceive() {
     return receiveBuilder()
       .match(String.class, s -> {
         log.info("Received String message: {}", s);
@@ -27,7 +27,8 @@ public class MyJavaActor extends AbstractActor {
         //#reply
         //#my-actor
       })
-      .matchAny(o -> log.info("received unknown message"));
+      .matchAny(o -> log.info("received unknown message"))
+      .build();
   }
 }
 //#my-actor

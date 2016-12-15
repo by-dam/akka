@@ -14,10 +14,15 @@ import scala.runtime.BoxedUnit
  * This is an EXPERIMENTAL feature and is subject to change until it has received more real world testing.
  */
 object AbstractActor {
+
+  class Receive(val onMessage: PartialFunction[Any, BoxedUnit]) {
+    def orElse(other: Receive): Receive = new Receive(onMessage.orElse(other.onMessage))
+  }
+
   /**
    * emptyBehavior is a Receive-expression that matches no messages at all, ever.
    */
-  final val emptyBehavior = Actor.emptyBehavior
+  final val emptyBehavior: Receive = new Receive(PartialFunction.empty)
 }
 
 /**
@@ -111,17 +116,17 @@ abstract class AbstractActor extends Actor {
   @throws(classOf[Exception])
   override def postRestart(reason: Throwable): Unit = super.postRestart(reason)
 
-  def initialReceive(): ReceiveBuilder
+  def initialReceive(): AbstractActor.Receive
 
   override def receive: PartialFunction[Any, Unit] =
-    initialReceive().build().asInstanceOf[PartialFunction[Any, Unit]] // cast Object to Any
+    initialReceive().onMessage.asInstanceOf[PartialFunction[Any, Unit]]
 
   final def receiveBuilder(): ReceiveBuilder = ReceiveBuilder.create()
 }
 
 abstract class UntypedAbstractActor extends AbstractActor {
 
-  final override def initialReceive(): ReceiveBuilder =
+  final override def initialReceive(): AbstractActor.Receive =
     throw new UnsupportedOperationException("initialReceive should not be used by UntypedAbstractActor")
 
   override def receive: PartialFunction[Any, Unit] = { case msg ⇒ onReceive(msg) }

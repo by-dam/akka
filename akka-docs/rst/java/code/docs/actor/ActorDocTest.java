@@ -5,6 +5,7 @@
 package docs.actor;
 
 import akka.actor.*;
+import akka.actor.AbstractActor.Receive;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.ErrorFilter;
 import akka.testkit.EventFilter;
@@ -72,11 +73,11 @@ public class ActorDocTest extends AbstractJavaTest {
     final ActorRef child = getContext().actorOf(Props.create(MyActor.class), "myChild");
     //#plus-some-behavior
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder().
         matchAny(x -> {
           sender().tell(x, self());
-        });
+        }).build();
     }
     //#plus-some-behavior
   }
@@ -85,11 +86,12 @@ public class ActorDocTest extends AbstractJavaTest {
   static public abstract class SomeActor extends AbstractActor {
     //#receive-constructor
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder().
         //#and-some-behavior
-        match(String.class, s -> System.out.println(s.toLowerCase()));
+        match(String.class, s -> System.out.println(s.toLowerCase()))
         //#and-some-behavior
+        .build();
     }
     //#receive-constructor
 //    @Override
@@ -106,8 +108,8 @@ public class ActorDocTest extends AbstractJavaTest {
     }
     
     @Override
-    public ReceiveBuilder initialReceive() {
-      return receiveBuilder().matchAny(x -> { });
+    public Receive initialReceive() {
+      return receiveBuilder().matchAny(x -> { }).build();
     }
   }
 
@@ -133,11 +135,11 @@ public class ActorDocTest extends AbstractJavaTest {
     }
     
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .match(Integer.class, i -> {
           sender().tell(i + magicNumber, self());
-        });
+        }).build();
     }
   }
 
@@ -150,8 +152,8 @@ public class ActorDocTest extends AbstractJavaTest {
     // ...
     //#props-factory
     @Override
-    public ReceiveBuilder initialReceive() {
-      return receiveBuilder();
+    public Receive initialReceive() {
+      return receiveBuilder().build();
     }
     //#props-factory
   }
@@ -160,8 +162,8 @@ public class ActorDocTest extends AbstractJavaTest {
   public static class Hook extends AbstractActor {
     ActorRef target = null;
     @Override
-    public ReceiveBuilder initialReceive() {
-      return receiveBuilder();
+    public Receive initialReceive() {
+      return receiveBuilder().build();
     }
     //#preStart
     @Override
@@ -211,7 +213,7 @@ public class ActorDocTest extends AbstractJavaTest {
 
   public static class ReplyException extends AbstractActor {
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .matchAny(x -> {
           //#reply-exception
@@ -223,7 +225,7 @@ public class ActorDocTest extends AbstractJavaTest {
             throw e;
           }
           //#reply-exception
-        });
+        }).build();
     }
 
     private String operation() {
@@ -243,7 +245,7 @@ public class ActorDocTest extends AbstractJavaTest {
     getContext().watch(getContext().actorOf(Props.create(Cruncher.class), "worker"));
 
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .matchEquals("job", s ->
           worker.tell("crunch", self())
@@ -251,17 +253,19 @@ public class ActorDocTest extends AbstractJavaTest {
         .matchEquals(SHUTDOWN, x -> {
           worker.tell(PoisonPill.getInstance(), self());
           getContext().become(shuttingDown);
-        });
+        })
+        .build();
     }
 
-    public ReceiveBuilder shuttingDown =
+    public Receive shuttingDown =
       receiveBuilder()
         .matchEquals("job", s -> {
           sender().tell("service unavailable, shutting down", self());
         })
         .match(Terminated.class, t -> t.actor().equals(worker), t -> {
           getContext().stop(self());
-        });
+        })
+        .build();
   }
   //#gracefulStop-actor
 
@@ -283,9 +287,10 @@ public class ActorDocTest extends AbstractJavaTest {
 
   public static class Cruncher extends AbstractActor {
     @Override
-    public ReceiveBuilder initialReceive() {
-      return receiveBuilder().
-        matchEquals("crunch", s -> { });
+    public Receive initialReceive() {
+      return receiveBuilder()
+        .matchEquals("crunch", s -> { })
+        .build();
     }
   }
 
@@ -293,7 +298,7 @@ public class ActorDocTest extends AbstractJavaTest {
   //#swapper
   public class Swapper extends AbstractLoggingActor {
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder().
         matchEquals(Swap, s -> {
             log().info("Hi");
@@ -301,8 +306,8 @@ public class ActorDocTest extends AbstractJavaTest {
                     matchEquals(Swap, x -> {
                       log().info("Ho");
                       getContext().unbecome(); // resets the latest 'become' (just for fun)
-                    }), false); // push on top instead of replace
-        });
+                    }).build(), false); // push on top instead of replace
+        }).build();
     }
   }
 
@@ -383,7 +388,7 @@ public class ActorDocTest extends AbstractJavaTest {
     }
     
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .matchEquals("Hello", s -> {
           // To set in a response to a message
@@ -399,7 +404,8 @@ public class ActorDocTest extends AbstractJavaTest {
           //#receive-timeout
           target.tell("timeout", self());
           //#receive-timeout
-        });
+        })
+        .build();
     }
   }
   //#receive-timeout
@@ -419,37 +425,40 @@ public class ActorDocTest extends AbstractJavaTest {
   static
   //#hot-swap-actor
   public class HotSwapActor extends AbstractActor {
-    private ReceiveBuilder angry;
-    private ReceiveBuilder happy;
+    private Receive angry;
+    private Receive happy;
 
     public HotSwapActor() {
       angry =
-        receiveBuilder().
-          matchEquals("foo", s -> {
+        receiveBuilder()
+          .matchEquals("foo", s -> {
             sender().tell("I am already angry?", self());
-          }).
-          matchEquals("bar", s -> {
+          })
+          .matchEquals("bar", s -> {
             getContext().become(happy);
-          });
+          })
+          .build();
 
-      happy = receiveBuilder().
-        matchEquals("bar", s -> {
+      happy = receiveBuilder()
+        .matchEquals("bar", s -> {
           sender().tell("I am already happy :-)", self());
-        }).
-        matchEquals("foo", s -> {
+        })
+        .matchEquals("foo", s -> {
           getContext().become(angry);
-        });
+        })
+        .build();
     }
   
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .matchEquals("foo", s -> {
           getContext().become(angry);
         })
         .matchEquals("bar", s -> {
           getContext().become(happy);
-        });
+        })
+        .build();
     }
   }
   //#hot-swap-actor
@@ -478,7 +487,7 @@ public class ActorDocTest extends AbstractJavaTest {
   //#stash
   public class ActorWithProtocol extends AbstractActorWithStash {
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .matchEquals("open", s -> {
           getContext().become(receiveBuilder().
@@ -489,7 +498,8 @@ public class ActorDocTest extends AbstractJavaTest {
             }).
             matchAny(msg -> stash()).build(), false);
         })
-        .matchAny(msg -> stash());
+        .matchAny(msg -> stash())
+        .build();
     }
   }
   //#stash
@@ -510,7 +520,7 @@ public class ActorDocTest extends AbstractJavaTest {
     }
     
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .matchEquals("kill", s -> {
           getContext().stop(child);
@@ -518,7 +528,8 @@ public class ActorDocTest extends AbstractJavaTest {
         })
         .match(Terminated.class, t -> t.actor().equals(child), t -> {
           lastSender.tell("finished", self());
-        });
+        })
+        .build();
     }
   }
   //#watch
@@ -546,7 +557,7 @@ public class ActorDocTest extends AbstractJavaTest {
     }
     
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .match(ActorIdentity.class, id -> id.getRef() != null, id -> {
           ActorRef ref = id.getRef();
@@ -555,14 +566,15 @@ public class ActorDocTest extends AbstractJavaTest {
         })
         .match(ActorIdentity.class, id -> id.getRef() == null, id -> {
           getContext().stop(self());
-        });
+        })
+        .build();
     }
 
-    final ReceiveBuilder active(final ActorRef another) {
+    final Receive active(final ActorRef another) {
       return receiveBuilder().
         match(Terminated.class, t -> t.actor().equals(another), t -> {
           getContext().stop(self());
-        });
+        }).build();
     }
   }
   //#identify

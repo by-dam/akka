@@ -19,6 +19,7 @@ import scala.util.control.NonFatal
 import akka.dispatch.MessageDispatcher
 import akka.util.Reflect
 import akka.japi.pf.ReceiveBuilder
+import akka.actor.AbstractActor.Receive
 
 /**
  * The actor context - the view of the actor cell from the actor.
@@ -183,8 +184,8 @@ trait AbstractActorContext extends ActorContext {
    * Changes the Actor's behavior to become the new 'Receive' handler.
    * Replaces the current behavior on the top of the behavior stack.
    */
-  def become(builder: ReceiveBuilder): Unit =
-    become(builder, discardOld = true)
+  def become(behavior: Receive): Unit =
+    become(behavior, discardOld = true)
 
   /**
    * Changes the Actor's behavior to become the new 'Receive' handler.
@@ -197,8 +198,8 @@ trait AbstractActorContext extends ActorContext {
    * leaks in case client code is written without consulting this documentation first (i.e.
    * always pushing new behaviors and never issuing an `unbecome()`)
    */
-  def become(builder: ReceiveBuilder, discardOld: Boolean): Unit =
-    become(builder.build().asInstanceOf[PartialFunction[Any, Unit]], discardOld)
+  def become(behavior: Receive, discardOld: Boolean): Unit =
+    become(behavior.onMessage.asInstanceOf[PartialFunction[Any, Unit]], discardOld)
 }
 
 /**

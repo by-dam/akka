@@ -6,6 +6,8 @@ package akka.japi.pf;
 
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
+import akka.actor.AbstractActor;
+import akka.actor.AbstractActor.Receive;
 
 /**
  * Used for building a partial function for {@link akka.actor.Actor#receive() Actor.receive()}.
@@ -35,9 +37,31 @@ import scala.runtime.BoxedUnit;
  *
  * This is an EXPERIMENTAL feature and is subject to change until it has received more real world testing.
  */
-public class ReceiveBuilder extends AbstractPFBuilder<Object, BoxedUnit> {
+public class ReceiveBuilder {
 
-  private ReceiveBuilder() {
+  private PartialFunction<Object, BoxedUnit> statements = null;
+
+  protected void addStatement(PartialFunction<Object, BoxedUnit> statement) {
+    if (statements == null)
+      statements = statement;
+    else
+      statements = statements.orElse(statement);
+  }
+
+  /**
+   * Build a {@link scala.PartialFunction} from this builder. After this call
+   * the builder will be reset.
+   *
+   * @return a PartialFunction for this builder.
+   */
+  public Receive build() {
+    PartialFunction<Object, BoxedUnit> empty = CaseStatement.empty();
+
+    statements = null;
+    if (statements == null)
+      return new Receive(empty);
+    else
+      return new Receive(statements.orElse(empty)); // FIXME why no new Receive(statements)?
   }
 
   /**

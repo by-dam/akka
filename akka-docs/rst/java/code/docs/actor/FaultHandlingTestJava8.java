@@ -64,11 +64,11 @@ public class FaultHandlingTestJava8 extends JUnitSuite {
     //#strategy
 
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder().
         match(Props.class, props -> {
           sender().tell(getContext().actorOf(props), self());
-        });
+        }).build();
     }
   }
 
@@ -94,11 +94,11 @@ public class FaultHandlingTestJava8 extends JUnitSuite {
     //#strategy2
 
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder().
         match(Props.class, props -> {
           sender().tell(getContext().actorOf(props), self());
-        });
+        }).build();
     }
 
     @Override
@@ -115,11 +115,12 @@ public class FaultHandlingTestJava8 extends JUnitSuite {
     int state = 0;
 
     @Override
-    public ReceiveBuilder initialReceive() {
+    public Receive initialReceive() {
       return receiveBuilder()
         .match(Exception.class, exception -> { throw exception; })
         .match(Integer.class, i -> state = i)
-        .matchEquals("get", s -> sender().tell(state, self()));
+        .matchEquals("get", s -> sender().tell(state, self()))
+        .build();
     }
   }
 

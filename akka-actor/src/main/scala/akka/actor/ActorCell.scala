@@ -163,46 +163,6 @@ trait ActorContext extends ActorRefFactory {
 }
 
 /**
- * AbstractActorContext is the AbstractActor equivalent of ActorContext,
- * containing the Java API
- */
-trait AbstractActorContext extends ActorContext {
-
-  /**
-   * Returns an unmodifiable Java Collection containing the linked actors,
-   * please note that the backing map is thread-safe but not immutable
-   */
-  def getChildren(): java.lang.Iterable[ActorRef]
-
-  /**
-   * Returns a reference to the named child or null if no child with
-   * that name exists.
-   */
-  def getChild(name: String): ActorRef
-
-  /**
-   * Changes the Actor's behavior to become the new 'Receive' handler.
-   * Replaces the current behavior on the top of the behavior stack.
-   */
-  def become(behavior: Receive): Unit =
-    become(behavior, discardOld = true)
-
-  /**
-   * Changes the Actor's behavior to become the new 'Receive' handler.
-   * This method acts upon the behavior stack as follows:
-   *
-   *  - if `discardOld = true` it will replace the top element (i.e. the current behavior)
-   *  - if `discardOld = false` it will keep the current behavior and push the given one atop
-   *
-   * The default of replacing the current behavior on the stack has been chosen to avoid memory
-   * leaks in case client code is written without consulting this documentation first (i.e.
-   * always pushing new behaviors and never issuing an `unbecome()`)
-   */
-  def become(behavior: Receive, discardOld: Boolean): Unit =
-    become(behavior.onMessage.asInstanceOf[PartialFunction[Any, Unit]], discardOld)
-}
-
-/**
  * UntypedActorContext is the UntypedActor equivalent of ActorContext,
  * containing the Java API
  */
@@ -400,7 +360,7 @@ private[akka] class ActorCell(
   final val props: Props, // Must be final so that it can be properly cleared in clearActorCellFields
   val dispatcher:  MessageDispatcher,
   val parent:      InternalActorRef)
-  extends UntypedActorContext with AbstractActorContext with Cell
+  extends UntypedActorContext with AbstractActor.ActorContext with Cell
   with dungeon.ReceiveTimeout
   with dungeon.Children
   with dungeon.Dispatch

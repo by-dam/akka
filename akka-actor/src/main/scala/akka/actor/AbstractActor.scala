@@ -23,6 +23,46 @@ object AbstractActor {
    * emptyBehavior is a Receive-expression that matches no messages at all, ever.
    */
   final val emptyBehavior: Receive = new Receive(PartialFunction.empty)
+
+  /**
+   * The actor context - the view of the actor cell from the actor.
+   * Exposes contextual information for the actor and the current message.
+   */
+  trait ActorContext extends akka.actor.ActorContext {
+
+    /**
+     * Returns an unmodifiable Java Collection containing the linked actors,
+     * please note that the backing map is thread-safe but not immutable
+     */
+    def getChildren(): java.lang.Iterable[ActorRef]
+
+    /**
+     * Returns a reference to the named child or null if no child with
+     * that name exists.
+     */
+    def getChild(name: String): ActorRef
+
+    /**
+     * Changes the Actor's behavior to become the new 'Receive' handler.
+     * Replaces the current behavior on the top of the behavior stack.
+     */
+    def become(behavior: Receive): Unit =
+      become(behavior, discardOld = true)
+
+    /**
+     * Changes the Actor's behavior to become the new 'Receive' handler.
+     * This method acts upon the behavior stack as follows:
+     *
+     *  - if `discardOld = true` it will replace the top element (i.e. the current behavior)
+     *  - if `discardOld = false` it will keep the current behavior and push the given one atop
+     *
+     * The default of replacing the current behavior on the stack has been chosen to avoid memory
+     * leaks in case client code is written without consulting this documentation first (i.e.
+     * always pushing new behaviors and never issuing an `unbecome()`)
+     */
+    def become(behavior: Receive, discardOld: Boolean): Unit =
+      become(behavior.onMessage.asInstanceOf[PartialFunction[Any, Unit]], discardOld)
+  }
 }
 
 /**
@@ -56,11 +96,11 @@ object AbstractActor {
 abstract class AbstractActor extends Actor {
 
   /**
-   * Returns this AbstractActor's AbstractActorContext
-   * The AbstractActorContext is not thread safe so do not expose it outside of the
+   * Returns this AbstractActor's ActorContext
+   * The ActorContext is not thread safe so do not expose it outside of the
    * AbstractActor.
    */
-  def getContext(): AbstractActorContext = context.asInstanceOf[AbstractActorContext]
+  def getContext(): AbstractActor.ActorContext = context.asInstanceOf[AbstractActor.ActorContext]
 
   /**
    * Returns the ActorRef for this actor.

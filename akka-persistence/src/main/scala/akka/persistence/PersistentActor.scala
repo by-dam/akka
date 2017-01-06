@@ -165,6 +165,7 @@ trait PersistentActor extends Eventsourced with PersistenceIdentity {
 /**
  * Java API: an persistent actor - can be used to implement command or event sourcing.
  */
+@deprecated("Use AbstractPersistentActor instead of UntypedPersistentActor.", since = "2.5.0")
 abstract class UntypedPersistentActor extends UntypedActor with Eventsourced with PersistenceIdentity {
 
   final def onReceive(message: Any) = onReceiveCommand(message)
@@ -307,6 +308,37 @@ abstract class UntypedPersistentActor extends UntypedActor with Eventsourced wit
  * Java API: an persistent actor - can be used to implement command or event sourcing.
  */
 abstract class AbstractPersistentActor extends AbstractActor with PersistentActor with Eventsourced {
+
+  /**
+   * Recovery handler that receives persisted events during recovery. If a state snapshot
+   * has been captured and saved, this handler will receive a [[SnapshotOffer]] message
+   * followed by events that are younger than the offered snapshot.
+   *
+   * This handler must not have side-effects other than changing persistent actor state i.e. it
+   * should not perform actions that may fail, such as interacting with external services,
+   * for example.
+   *
+   * If there is a problem with recovering the state of the actor from the journal, the error
+   * will be logged and the actor will be stopped.
+   *
+   * @see [[Recovery]]
+   */
+  def defineReceiveRecover(): AbstractActor.Receive
+
+  @deprecated("Use defineReceiveRecover instead", since = "2.5.0")
+  def receiveRecover: Receive = defineReceiveRecover().onMessage.asInstanceOf[Receive]
+
+  /**
+   * Command handler. Typically validates commands against current state (and/or by
+   * communication with other actors). On successful validation, one or more events are
+   * derived from a command and these events are then persisted by calling `persist`.
+   */
+  def defineReceiveCommand(): AbstractActor.Receive
+
+  @deprecated("Use defineReceiveCommand instead", since = "2.5.0")
+  override def receiveCommand: Receive = defineReceiveCommand().onMessage.asInstanceOf[Receive]
+
+  def initialReceive(): AbstractActor.Receive = defineReceiveCommand()
 
   /**
    * Java API: asynchronously persists `event`. On successful persistence, `handler` is called with the

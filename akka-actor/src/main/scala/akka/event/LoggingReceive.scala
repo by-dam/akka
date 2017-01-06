@@ -37,7 +37,6 @@ object LoggingReceive {
 
   /**
    * Java API: compatible with lambda expressions
-   * This is an EXPERIMENTAL feature and is subject to change until it has received more real world testing.
    */
   def create(r: Receive, context: ActorContext): Receive = apply(r)(context)
 

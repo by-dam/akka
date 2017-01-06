@@ -16,7 +16,6 @@ import scala.runtime.BoxedUnit;
  *
  * @param <I> the input type, that this PartialFunction will be applied to
  *
- * This is an EXPERIMENTAL feature and is subject to change until it has received more real world testing.
  */
 public class UnitMatch<I> extends AbstractMatch<I, BoxedUnit> {
 

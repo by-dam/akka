@@ -17,14 +17,13 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
+import akka.actor.UntypedAbstractActor;
 import akka.actor.ReceiveTimeout;
-import akka.actor.UntypedActor;
 import akka.japi.Procedure;
 import akka.japi.Option;
-import akka.persistence.UntypedPersistentActor;
+import akka.persistence.AbstractPersistentActor;
 import akka.cluster.Cluster;
 import akka.japi.pf.DeciderBuilder;
-import akka.japi.pf.ReceiveBuilder;
 
 // Doc code, compile only
 public class ClusterShardingTest {
@@ -97,7 +96,7 @@ public class ClusterShardingTest {
   }
 
   static//#counter-actor
-  public class Counter extends UntypedPersistentActor {
+  public class Counter extends AbstractPersistentActor {
 
     public static enum CounterOp {
       INCREMENT, DECREMENT
@@ -148,39 +147,39 @@ public class ClusterShardingTest {
     }
 
     @Override
-    public void onReceiveRecover(Object msg) {
-      if (msg instanceof CounterChanged)
-        updateState((CounterChanged) msg);
-      else
-        unhandled(msg);
+    public Receive defineReceiveRecover() {
+      return receiveBuilder()
+          .match(CounterChanged.class, this::updateState)
+          .build();
     }
 
     @Override
-    public void onReceiveCommand(Object msg) {
-      if (msg instanceof Get)
-        getSender().tell(count, getSelf());
-
-      else if (msg == CounterOp.INCREMENT)
-        persist(new CounterChanged(+1), new Procedure<CounterChanged>() {
-          public void apply(CounterChanged evt) {
-            updateState(evt);
-          }
-        });
-
-      else if (msg == CounterOp.DECREMENT)
-        persist(new CounterChanged(-1), new Procedure<CounterChanged>() {
-          public void apply(CounterChanged evt) {
-            updateState(evt);
-          }
-        });
-
-      else if (msg.equals(ReceiveTimeout.getInstance()))
-        getContext().parent().tell(
-            new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
-
-      else
-        unhandled(msg);
+    public Receive defineReceiveCommand() {
+      return receiveBuilder()
+        .match(Get.class, this::receiveGet)
+        .matchEquals(CounterOp.INCREMENT, msg -> receiveIncrement())
+        .matchEquals(CounterOp.DECREMENT, msg -> receiveDecrement())
+        .matchEquals(ReceiveTimeout.getInstance(), msg -> passivate())
+        .build();
     }
+
+    private void receiveGet(Get msg) {
+      getSender().tell(count, getSelf());
+    }
+
+    private void receiveIncrement() {
+      persist(new CounterChanged(+1), this::updateState);
+    }
+
+    private void receiveDecrement() {
+      persist(new CounterChanged(-1), this::updateState);
+    }
+
+    private void passivate() {
+      getContext().parent().tell(
+          new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+    }
+
   }
 
   //#counter-actor
@@ -218,7 +217,7 @@ public class ClusterShardingTest {
   //#graceful-shutdown
 
   static//#supervisor
-  public class CounterSupervisor extends UntypedActor {
+  public class CounterSupervisor extends AbstractActor {
 
     private final ActorRef counter = getContext().actorOf(
         Props.create(Counter.class), "theCounter");
@@ -236,9 +235,12 @@ public class ClusterShardingTest {
     }
 
     @Override
-    public void onReceive(Object msg) {
-      counter.forward(msg, getContext());
+    public Receive initialReceive() {
+      return receiveBuilder()
+        .match(Object.class, msg -> counter.forward(msg, getContext()))
+        .build();
     }
+
   }
   //#supervisor
 

@@ -390,7 +390,7 @@ object Actor {
  * initial behavior of the actor as a partial function (behavior can be changed
  * using `context.become` and `context.unbecome`).
  *
- * This is the Scala API (hence the Scala code below), for the Java API see [[akka.actor.UntypedActor]].
+ * This is the Scala API (hence the Scala code below), for the Java API see [[akka.actor.AbstractActor]].
  *
  * {{{
  * class ExampleActor extends Actor {
@@ -441,7 +441,7 @@ trait Actor {
    * publish it to other threads!
    *
    * [[akka.actor.ActorContext]] is the Scala API. `getContext` returns a
-   * [[akka.actor.UntypedActorContext]], which is the Java API of the actor
+   * [[akka.actor.AbstractActor.ActorContext]], which is the Java API of the actor
    * context.
    */
   implicit val context: ActorContext = {

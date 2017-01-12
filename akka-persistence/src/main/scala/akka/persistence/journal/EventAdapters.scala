@@ -92,7 +92,7 @@ private[akka] object EventAdapters {
     val bindings: immutable.Seq[ClassHandler] = {
       val bs = for ((k: FQN, as: BoundAdapters) ← adapterBindings)
         yield if (as.size == 1) (system.dynamicAccess.getClassFor[Any](k).get, handlers(as.head))
-      else (system.dynamicAccess.getClassFor[Any](k).get, CombinedReadEventAdapter(as.map(handlers)))
+      else (system.dynamicAccess.getClassFor[Any](k).get, NoopWriteEventAdapter(CombinedReadEventAdapter(as.map(handlers))))
 
       sort(bs)
     }
@@ -115,11 +115,7 @@ private[akka] object EventAdapters {
   }
 
   /** INTERNAL API */
-  private[akka] case class CombinedReadEventAdapter(adapters: immutable.Seq[EventAdapter]) extends EventAdapter {
-    private def onlyReadSideException = new IllegalStateException("CombinedReadEventAdapter must not be used when writing (creating manifests) events!")
-    override def manifest(event: Any): String = throw onlyReadSideException
-    override def toJournal(event: Any): Any = throw onlyReadSideException
-
+  private[akka] case class CombinedReadEventAdapter(adapters: immutable.Seq[EventAdapter]) extends ReadEventAdapter {
     override def fromJournal(event: Any, manifest: String): EventSeq =
       EventSeq(adapters.flatMap(_.fromJournal(event, manifest).events): _*) // TODO could we could make EventSeq flatMappable
 
